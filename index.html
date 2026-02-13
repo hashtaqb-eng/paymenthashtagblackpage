@@ -390,38 +390,24 @@ color: #ff0055;
 </div>
 
 <script>
-// رابط Google Apps Script
+// ✅ رابط Google Apps Script
 const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbz60Az3a9ufHH4caB39lMc_5FRVZfwnN5cLeXB_0FnVWhVxpv-T4rf4c73n6xtJFA1FuA/usercallback";
 
 let cartData = null;
-let sessionId = null;
 
-// استخراج sessionId من الرابط
-function getSessionId() {
-const params = new URLSearchParams(window.location.search);
-return params.get('sessionId');
-}
-
-// تحميل بيانات السلة
-async function loadCart() {
+// ✅ استقبل البيانات من localStorage (بدل fetch!)
+function loadCart() {
 try {
-sessionId = getSessionId();
-
-if (!sessionId) {
-showError('معرّف الجلسة غير موجود. يرجى العودة والمحاولة مجدداً.');
+const stored = localStorage.getItem('pendingCart');
+if (!stored) {
+showError('لم يتم العثور على بيانات السلة. يرجى العودة والمحاولة مجدداً.');
 return;
 }
 
-const response = await fetch(`${API_ENDPOINT}?action=getCart&sessionId=${sessionId}`);
-const result = await response.json();
-
-if (!result.success) {
-showError('انتهت جلسة السلة أو حدث خطأ. يرجى المحاولة مجدداً.');
-return;
-}
-
-cartData = result;
+cartData = JSON.parse(stored);
 displayCart();
+localStorage.removeItem('pendingCart'); // احذفها بعد الاستخدام
+
 document.getElementById('loadingSpinner').style.display = 'none';
 document.getElementById('content').style.display = 'block';
 
@@ -475,11 +461,11 @@ document.getElementById('customerName').addEventListener('input', updatePayButto
 document.getElementById('customerEmail').addEventListener('input', updatePayButton);
 document.getElementById('customerPhone').addEventListener('input', updatePayButton);
 
-// تحميل السلة
+// ✅ تحميل السلة من localStorage
 loadCart();
 });
 
-// معالجة الدفع
+// معالجة الدفع - استخدم POST على نفس الصفحة
 async function processPayment() {
 const name = document.getElementById('customerName').value.trim();
 const email = document.getElementById('customerEmail').value.trim();
@@ -501,7 +487,11 @@ try {
 const orderId = 'ORD' + Date.now();
 const fullPhone = phoneCode + phone;
 
-const paymentData = {
+// ✅ استخدم POST على نفس الصفحة (لا مشاكل CORS!)
+const response = await fetch(window.location.href, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
 action: 'payment',
 orderId: orderId,
 amount: cartData.total,
@@ -509,11 +499,10 @@ customerName: name,
 customerEmail: email,
 customerPhone: fullPhone,
 paymentMethod: paymentMethod,
-items: JSON.stringify(cartData.items)
-};
+items: cartData.items
+})
+});
 
-const params = new URLSearchParams(paymentData);
-const response = await fetch(API_ENDPOINT + '?' + params.toString());
 const result = await response.json();
 
 if (result.success) {
