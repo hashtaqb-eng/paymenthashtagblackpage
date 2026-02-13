@@ -391,7 +391,7 @@ color: #ff0055;
 
 <script>
 // رابط Google Apps Script
-const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbwJgc8xEcjwKwu1ofLFDNJMepxKt-sY7XfbCXWWvDhq7xYLWTJfxyV7_zi9F-FY6S9LiA/exec";
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbx-PLo4bfZE2k6zWPbBNhPVzw7FicaG_TB-ZRIMWlfgzuKt_TGQbLtwnEdg4ZxAvEsgeg/exec";
 
 let cartData = null;
 let sessionId = null;
@@ -513,9 +513,8 @@ items: JSON.stringify(cartData.items)
 };
 
 const params = new URLSearchParams(paymentData);
-const response = await fetch(API_ENDPOINT + '?' + params.toString());
-const result = await response.json();
-
+const response = await fetch(API_ENDPOINT + "?" + params.toString());
+  
 if (result.success) {
 const paymentUrl = result.paymentUrl || result.checkoutUrl;
 if (paymentUrl) {
