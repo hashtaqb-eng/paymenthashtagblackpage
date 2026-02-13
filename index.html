@@ -391,7 +391,7 @@ color: #ff0055;
 
 <script>
 // ✅ رابط Google Apps Script
-const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbwz3NEXPJIzgvGEtgklqBhNe3s_CjX8lRIpdO1VwOAn7tpu7VzkRU5YYBEm_evOpVwMKg/exec";
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbz60Az3a9ufHH4caB39lMc_5FRVZfwnN5cLeXB_0FnVWhVxpv-T4rf4c73n6xtJFA1FuA/usercallback";
 
 let cartData = null;
 
@@ -469,7 +469,7 @@ document.getElementById('customerPhone').addEventListener('input', updatePayButt
 loadCart();
 });
 
-// ✅ معالجة الدفع - POST إلى Google Apps Script
+// ✅ معالجة الدفع - إنشاء الطلب ثم الدفع
 async function processPayment() {
 const name = document.getElementById('customerName').value.trim();
 const email = document.getElementById('customerEmail').value.trim();
@@ -490,11 +490,37 @@ payBtn.textContent = '⏳ جاري المعالجة...';
 try {
 const orderId = 'ORD' + Date.now();
 const fullPhone = phoneCode + phone;
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbwz3NEXPJIzgvGEtgklqBhNe3s_CjX8lRIpdO1VwOAn7tpu7VzkRU5YYBEm_evOpVwMKg/exec";
 
-// ✅ POST إلى Google Apps Script
-const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbz60Az3a9ufHH4caB39lMc_5FRVZfwnN5cLeXB_0FnVWhVxpv-T4rf4c73n6xtJFA1FuA/usercallback";
+console.log('Creating order:', orderId);
 
-const response = await fetch(API_ENDPOINT, {
+// ✅ أولاً: حفظ الطلب في الشيت
+const createOrderRes = await fetch(API_ENDPOINT, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+action: 'createOrder',
+orderId: orderId,
+customerName: name,
+customerEmail: email,
+customerPhone: fullPhone,
+items: cartData.items,
+total: cartData.total,
+paymentMethod: paymentMethod
+})
+});
+
+const createResult = await createOrderRes.json();
+console.log('Order created:', createResult);
+
+if (!createResult.success) {
+throw new Error('فشل إنشاء الطلب: ' + (createResult.error || 'خطأ غير معروف'));
+}
+
+// ✅ ثانياً: معالجة الدفع
+console.log('Processing payment for order:', orderId);
+
+const paymentRes = await fetch(API_ENDPOINT, {
 method: 'POST',
 headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({
@@ -509,7 +535,7 @@ items: cartData.items
 })
 });
 
-const result = await response.json();
+const result = await paymentRes.json();
 console.log('Payment response:', result);
 
 if (result.success) {
