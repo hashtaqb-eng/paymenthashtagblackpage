@@ -391,7 +391,7 @@ color: #ff0055;
 
 <script>
 // ✅ رابط Google Apps Script
-const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbxGREVCh-QkQR9RNe96o8SAaeGLsDTLwyTFFKsBrzRNi4diYseA16b7pGqZFHRzyeJBvA/exec";
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbz60Az3a9ufHH4caB39lMc_5FRVZfwnN5cLeXB_0FnVWhVxpv-T4rf4c73n6xtJFA1FuA/usercallback";
 
 let cartData = null;
 
@@ -469,7 +469,7 @@ document.getElementById('customerPhone').addEventListener('input', updatePayButt
 loadCart();
 });
 
-// ✅ معالجة الدفع - إنشاء الطلب ثم الدفع
+// ✅ معالجة الدفع - استخدم GET بدل POST (لا CORS!)
 async function processPayment() {
 const name = document.getElementById('customerName').value.trim();
 const email = document.getElementById('customerEmail').value.trim();
@@ -490,16 +490,12 @@ payBtn.textContent = '⏳ جاري المعالجة...';
 try {
 const orderId = 'ORD' + Date.now();
 const fullPhone = phoneCode + phone;
-const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbxGREVCh-QkQR9RNe96o8SAaeGLsDTLwyTFFKsBrzRNi4diYseA16b7pGqZFHRzyeJBvA/exec";
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbwz3NEXPJIzgvGEtgklqBhNe3s_CjX8lRIpdO1VwOAn7tpu7VzkRU5YYBEm_evOpVwMKg/exec";
 
 console.log('Creating order:', orderId);
 
-// ✅ أولاً: حفظ الطلب في الشيت
-const createOrderRes = await fetch(API_ENDPOINT, {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-action: 'createOrder',
+// ✅ أولاً: حفظ الطلب في الشيت (GET)
+const createOrderUrl = API_ENDPOINT + "?action=createOrder&data=" + encodeURIComponent(JSON.stringify({
 orderId: orderId,
 customerName: name,
 customerEmail: email,
@@ -507,43 +503,40 @@ customerPhone: fullPhone,
 items: cartData.items,
 total: cartData.total,
 paymentMethod: paymentMethod
-})
-});
+}));
 
+const createOrderRes = await fetch(createOrderUrl);
 const createResult = await createOrderRes.json();
 console.log('Order created:', createResult);
 
 if (!createResult.success) {
-throw new Error('فشل إنشاء الطلب: ' + (createResult.error || 'خطأ غير معروف'));
+throw new Error('فشل إنشاء الطلب');
 }
 
-// ✅ ثانياً: معالجة الدفع
+// ✅ ثانياً: معالجة الدفع (GET)
 console.log('Processing payment for order:', orderId);
 
-const paymentRes = await fetch(API_ENDPOINT, {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-action: 'payment',
-orderId: orderId,
-amount: cartData.total,
-customerName: name,
-customerEmail: email,
-customerPhone: fullPhone,
-paymentMethod: paymentMethod,
-items: cartData.items
-})
-});
+const paymentUrl = API_ENDPOINT + "?action=payment" +
+"&orderId=" + encodeURIComponent(orderId) +
+"&amount=" + cartData.total +
+"&customerName=" + encodeURIComponent(name) +
+"&customerEmail=" + encodeURIComponent(email) +
+"&customerPhone=" + encodeURIComponent(fullPhone) +
+"&paymentMethod=" + paymentMethod +
+"&items=" + encodeURIComponent(JSON.stringify(cartData.items));
 
+console.log('Payment URL:', paymentUrl);
+
+const paymentRes = await fetch(paymentUrl);
 const result = await paymentRes.json();
 console.log('Payment response:', result);
 
 if (result.success) {
-const paymentUrl = result.paymentUrl || result.checkoutUrl;
-if (paymentUrl) {
+const redirectUrl = result.paymentUrl || result.checkoutUrl;
+if (redirectUrl) {
 showSuccess('✅ جاري نقلك لصفحة الدفع...');
 setTimeout(() => {
-window.location.href = paymentUrl;
+window.location.href = redirectUrl;
 }, 1500);
 } else {
 throw new Error('لم يتم استقبال رابط الدفع');
