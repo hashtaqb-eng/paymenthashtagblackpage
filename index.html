@@ -469,7 +469,7 @@ document.getElementById('customerPhone').addEventListener('input', updatePayButt
 loadCart();
 });
 
-// معالجة الدفع - استخدم POST على نفس الصفحة
+// ✅ معالجة الدفع - POST إلى Google Apps Script
 async function processPayment() {
 const name = document.getElementById('customerName').value.trim();
 const email = document.getElementById('customerEmail').value.trim();
@@ -491,8 +491,10 @@ try {
 const orderId = 'ORD' + Date.now();
 const fullPhone = phoneCode + phone;
 
-// ✅ استخدم POST على نفس الصفحة (لا مشاكل CORS!)
-const response = await fetch(window.location.href, {
+// ✅ POST إلى Google Apps Script
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbz60Az3a9ufHH4caB39lMc_5FRVZfwnN5cLeXB_0FnVWhVxpv-T4rf4c73n6xtJFA1FuA/usercallback";
+
+const response = await fetch(API_ENDPOINT, {
 method: 'POST',
 headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({
@@ -508,6 +510,7 @@ items: cartData.items
 });
 
 const result = await response.json();
+console.log('Payment response:', result);
 
 if (result.success) {
 const paymentUrl = result.paymentUrl || result.checkoutUrl;
@@ -525,6 +528,7 @@ throw new Error(result.error || result.message || 'فشلت عملية الدف�
 
 } catch (error) {
 showError('❌ خطأ: ' + error.message);
+console.error('Payment error:', error);
 payBtn.disabled = false;
 payBtn.textContent = '✅ إتمام الدفع';
 }
