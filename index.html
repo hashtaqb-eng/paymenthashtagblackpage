@@ -391,22 +391,26 @@ color: #ff0055;
 
 <script>
 // ✅ رابط Google Apps Script
-  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbz60Az3a9ufHH4caB39lMc_5FRVZfwnN5cLeXB_0FnVWhVxpv-T4rf4c73n6xtJFA1FuA/usercallback";
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbz60Az3a9ufHH4caB39lMc_5FRVZfwnN5cLeXB_0FnVWhVxpv-T4rf4c73n6xtJFA1FuA/usercallback";
 
 let cartData = null;
 
-// ✅ استقبل البيانات من localStorage (بدل fetch!)
+// ✅ استقبل البيانات من URL (بدل localStorage!)
 function loadCart() {
 try {
-const stored = localStorage.getItem('pendingCart');
-if (!stored) {
+const params = new URLSearchParams(window.location.search);
+const cartBase64 = params.get('cart');
+
+if (!cartBase64) {
 showError('لم يتم العثور على بيانات السلة. يرجى العودة والمحاولة مجدداً.');
 return;
 }
 
-cartData = JSON.parse(stored);
+// ✅ فك تشفير البيانات
+const cartJson = decodeURIComponent(escape(atob(cartBase64)));
+cartData = JSON.parse(cartJson);
+
 displayCart();
-localStorage.removeItem('pendingCart'); // احذفها بعد الاستخدام
 
 document.getElementById('loadingSpinner').style.display = 'none';
 document.getElementById('content').style.display = 'block';
